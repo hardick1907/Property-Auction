@@ -32,7 +32,7 @@ const MyBiddings = () => {
               {/* Property Image */}
               {property.propertyImage && (
                 <img
-                  src={`http://localhost:3000/${property.propertyImage}`}
+                  src={property.propertyImage}
                   alt={property.propertyName}
                   className="w-full h-48 object-cover"
                 />
@@ -61,7 +61,7 @@ const MyBiddings = () => {
                                 {/* Bidder Image */}
                                 {bid.bidder.photographDocument && (
                                   <img
-                                    src={`http://localhost:3000/${bid.bidder.photographDocument}`}
+                                    src={bid.bidder.photographDocument}
                                     alt={bid.bidder.name}
                                     className="w-8 h-8 rounded-full object-cover"
                                   />

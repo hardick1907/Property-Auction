@@ -33,7 +33,10 @@ const EditProperty = () => {
       try {
         const data = await getPropertyById(id);
         if (data) {
-          setFormData(data);
+          setFormData({
+            ...data,
+            startDate: data.startDate?.split('T')[0],
+            endDate: data.endDate?.split('T')[0],});
         } else {
           setError('Property not found');
         }
@@ -48,35 +51,50 @@ const EditProperty = () => {
   }, [id, getPropertyById]);
 
   const handleInputChange = (e) => {
-    const { name, value, type, files } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'file' ? files[0] : value,
-    }));
+     const { name, value, type, files } = e.target;
+    
+        if (type === "file") {
+          const file = files[0];
+          // Validate file type and size
+          if (file) {
+            const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+    
+            if (!validTypes.includes(file.type)) {
+              toast.error("Please upload only JPG, JPEG or PNG images");
+              return;
+            }
+    
+            if (file.size > maxSize) {
+              toast.error("File size should be less than 5MB");
+              return;
+            }
+    
+            setFormData(prev => ({
+              ...prev,
+              [name]: file
+            }));
+          }
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            [name]: value
+          }));
+        }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setEditModalOpen(true);
-  };
+  }
 
   const confirmUpdate = async () => {
-    try {
-      const data = new FormData();
-      for (const key in formData) {
-        data.append(key, formData[key]);
-      }
-      const success = await editProperty(id, data);
-      if (success) {
-        navigate('/dashboard/listings/');
-      } else {
-        setError('Failed to update property. Please try again.');
-      }
-    } catch (err) {
-      setError(err.message || 'Error updating property');
+    const success = await editProperty(id, formData);
+    if (success) {
+      navigate("/dashboard/listings");
     }
   };
+
   
 
   const cancelUpdate = () => {

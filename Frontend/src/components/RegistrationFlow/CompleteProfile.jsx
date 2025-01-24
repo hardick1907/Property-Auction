@@ -25,8 +25,6 @@ const CompleteProfile = ({email, name}) => {
     dob: '',
     sex: '',
     maritalStatus: '',
-    identityDocument: null,
-    pancardDocument: null,
     photographDocument: null,
     acceptConditions: false
   });
@@ -36,14 +34,31 @@ const CompleteProfile = ({email, name}) => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    
-    if (type === 'file') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: files[0]
-      }));
-    } else if (type === 'checkbox') {
+    const { name, value, type, files, checked } = e.target;
+   
+    if (type === "file") {
+      const file = files[0];
+      // Validate file type and size
+      if (file) {
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!validTypes.includes(file.type)) {
+          toast.error("Please upload only JPG, JPEG or PNG images");
+          return;
+        }
+
+        if (file.size > maxSize) {
+          toast.error("File size should be less than 5MB");
+          return;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          [name]: file
+        }));
+      }
+    } else if (type === "checkbox") {
       setFormData(prev => ({
         ...prev,
         [name]: checked
@@ -55,6 +70,7 @@ const CompleteProfile = ({email, name}) => {
       }));
     }
   };
+
 
   const validateForm = () => {
     if (!formData.password.trim()) {
@@ -113,14 +129,6 @@ const CompleteProfile = ({email, name}) => {
       toast.error("Marital status is required");
       return false;
     }
-    if (!formData.identityDocument) {
-      toast.error("Identity document is required");
-      return false;
-    }
-    if (!formData.pancardDocument) {
-      toast.error("PAN card document is required");
-      return false;
-    }
     if (!formData.photographDocument) {
       toast.error("Photograph document is required");
       return false;
@@ -134,18 +142,28 @@ const CompleteProfile = ({email, name}) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    
+    if (!validateForm()) {
+      return;
+    }
 
-    const submitData = new FormData();
+    // Create FormData object to handle file uploads
+    const formDataToSend = new FormData();
+    
+    // Append all form fields to FormData
     Object.keys(formData).forEach(key => {
-      if (key !== 'confirmPassword') {
-        submitData.append(key, formData[key]);
+      if (key === 'photographDocument') {
+        if (formData[key]) {
+          formDataToSend.append(key, formData[key]);
+        }
+      } else {
+        formDataToSend.append(key, formData[key]);
       }
     });
 
-    const success = await register(submitData);
+    const success = await register(formDataToSend);
     if (success) {
-      navigate('/');
+      navigate('/dashboard');
     }
   };
 
@@ -404,34 +422,6 @@ const CompleteProfile = ({email, name}) => {
           </div>
 
           <div className="space-y-6">
-            <div className="flex flex-col space-y-2">
-              <label className="font-semibold">
-                Upload Identity Document
-                <span className="text-red-500">*</span>
-              </label>
-              <input 
-                type="file"
-                name="identityDocument"
-                onChange={handleInputChange}
-                className="file-input file-input-bordered w-full max-w-xs"
-                accept=".jpg,.jpeg,.png,.pdf"
-              />
-            </div>
-
-            <div className="flex flex-col space-y-2">
-              <label className="font-semibold">
-                Upload PAN Card Document
-                <span className="text-red-500">*</span>
-              </label>
-              <input 
-                type="file"
-                name="pancardDocument"
-                onChange={handleInputChange}
-                className="file-input file-input-bordered w-full max-w-xs"
-                accept=".jpg,.jpeg,.png,.pdf"
-              />
-            </div>
-
             <div className="flex flex-col space-y-2">
               <label className="font-semibold">
                 Upload Photograph

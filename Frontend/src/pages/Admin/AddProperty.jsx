@@ -31,14 +31,31 @@ const AddProperty = () => {
     const { name, value, type, files } = e.target;
 
     if (type === "file") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: files[0],
-      }));
+      const file = files[0];
+      // Validate file type and size
+      if (file) {
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!validTypes.includes(file.type)) {
+          toast.error("Please upload only JPG, JPEG or PNG images");
+          return;
+        }
+
+        if (file.size > maxSize) {
+          toast.error("File size should be less than 5MB");
+          return;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          [name]: file
+        }));
+      }
     } else {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        [name]: value,
+        [name]: value
       }));
     }
   };
@@ -59,6 +76,22 @@ const AddProperty = () => {
     if (!formdata.endDate.trim()) return toast.error("End Date is required");
     if (!formdata.auctionBrief.trim()) return toast.error("Auction Brief is required");
     if (!formdata.propertyImage) return toast.error("Property Image is required");
+
+    // Validate dates
+    const start = new Date(formdata.startDate);
+    const end = new Date(formdata.endDate);
+    const today = new Date();
+
+    if (start < today) {
+      toast.error("Start date cannot be in the past");
+      return false;
+    }
+
+    if (end <= start) {
+      toast.error("End date must be after start date");
+      return false;
+    }
+
     return true;
   };
 
@@ -67,12 +100,12 @@ const AddProperty = () => {
 
     if (validateForm()) {
       const success = await create(formdata);
+      console.log("frontend: ",formdata);
       if (success) {
         navigate("/dashboard/listings");
       }
     }
   };
-
   return (
     <>
       <section className="p-4">

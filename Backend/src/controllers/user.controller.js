@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import { generateToken } from "../lib/util.js";
 import { io } from "../lib/socket.js";
 import Feedback from "../models/review.model.js";
+import cloudinary from "../lib/cloudinary.js";
 
 export const sendOTP = async (req, res) => {
   const { email } = req.body;
@@ -75,36 +76,37 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
+// ... previous imports remain the same
+
 export const registerUser = async (req, res) => {
   try {
     const {
-      name,
-      email,
-      password,
-      mobilenumber,
-      aadharnumber,
-      applicantfathername,
-      applicantrelation,
-      pannumber,
-      address,
-      city,
-      state,
-      pincode,
-      dob,
-      sex,
-      maritalStatus,
-      acceptConditions
+      name, email, password, mobilenumber, aadharnumber,
+      applicantfathername, applicantrelation, pannumber,
+      address, city, state, pincode, dob, sex, maritalStatus,acceptConditions
     } = req.body;
 
-    // Validation checks (you can adjust as needed)
-    if (!name || !email || !password || !mobilenumber || !aadharnumber || !acceptConditions) {
-      return res.status(400).json({ message: 'Required fields missing' });
+    // Log the files received
+    console.log("Files received:", req.files);
+
+    // Check if all required files are present
+    if (!req.files || !req.files.photographDocument) {
+      return res.status(400).json({ 
+        message: "All required documents must be uploaded.",
+        receivedFiles: req.files ? Object.keys(req.files) : []
+      });
     }
 
-    // Hash password for security
+
+    // Upload photograph
+    const photographUpload = await cloudinary.uploader.upload(req.files.photographDocument.tempFilePath, {
+      folder: "photographs"
+    });
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new user object (adjust according to your model)
+    // Create new user
     const newUser = new User({
       name,
       email,
@@ -121,24 +123,33 @@ export const registerUser = async (req, res) => {
       dob,
       sex,
       maritalStatus,
-      identityDocument: req.files['identityDocument'] ? req.files['identityDocument'][0].path : null,
-      pancardDocument: req.files['pancardDocument'] ? req.files['pancardDocument'][0].path : null,
-      photographDocument: req.files['photographDocument'] ? req.files['photographDocument'][0].path : null,
+      photographDocument: photographUpload.secure_url,
       acceptConditions
     });
 
-    // Save the user to the database
     await newUser.save();
 
+    // Generate JWT token
     generateToken(newUser._id, res);
 
-    res.status(201).json({ message: 'User registered successfully' });
+    // Return success response
+    res.status(201).json({
+      _id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      photographDocument: newUser.photographDocument
+    });
 
   } catch (error) {
-    console.error("Error registering user:", error);
-    res.status(500).json("Internal Server Error");
+    console.error("Error in register controller:", error);
+    res.status(500).json({ 
+      message: "Registration failed", 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
-}
+};
+
 
 export const login = async (req, res) => {
   const { email, password } = req.body;

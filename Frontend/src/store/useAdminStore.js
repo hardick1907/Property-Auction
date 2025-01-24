@@ -11,12 +11,52 @@ export const useAdminStore = create((set,get) => ({
     create: async (data) => {
         set({ isLoading: true });
         try {
-            const res = await axiosInstance.post("/admin/addnewproperty", data,{
-                headers: {
-                    'Content-Type': 'multipart/form-data',
+            const formdata = new FormData();
+            Object.keys(data).forEach(key => {
+                if (key !== 'propertyImage') {
+                  formdata.append(key, data[key]);
                 }
             });
-            toast.success("Property created successfully!");
+            if (data.propertyImage) {
+                formdata.append('propertyImage', data.propertyImage);
+            }
+
+            const res = await axiosInstance.post("/admin/addnewproperty", formdata, {
+                headers: {
+                  'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            toast.success("Property added successfully");
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+            return false;
+        }finally{
+            set({ isLoading: false });
+        }
+    },
+
+    editProperty: async (id, data) => {
+        set({ isLoading: true });
+        try {
+            const formdata = new FormData();
+            Object.keys(data).forEach(key => {
+                if (key !== 'propertyImage') {
+                    formdata.append(key, data[key]);
+                }
+            });
+            if (data.propertyImage) {
+                formdata.append('propertyImage', data.propertyImage);
+            }
+
+            const res = await axiosInstance.put(`/admin/updateproperty/${id}`, formdata, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            toast.success("Property updated successfully");
             return true;
         } catch (error) {
             toast.error(error.response?.data?.message);
@@ -60,24 +100,6 @@ export const useAdminStore = create((set,get) => ({
         } catch (error) {
             console.log("Error in getPropertyById:", error.message);
             return null;
-        } finally {
-            set({ isLoading: false });
-        }
-    },
-
-    editProperty : async (id, data) => {
-        set({ isLoading: true });
-        try {
-            const res = await axiosInstance.put(`/admin/updateproperty/${id}`, data, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                }
-            });
-            toast.success("Property updated successfully!");
-            return true;
-        } catch (error) {
-            toast.error(error.response?.data?.message);
-            return false;
         } finally {
             set({ isLoading: false });
         }

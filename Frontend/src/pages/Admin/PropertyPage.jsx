@@ -100,7 +100,7 @@ const PropertyPage = () => {
       <div className="space-y-6">
         <div className="flex flex-col justify-center items-center gap-4">
           <img
-            src={`http://localhost:3000/${property.propertyImage}`}
+            src={property.propertyImage}
             alt={property.title}
             className="w-full max-w-md h-auto rounded-md shadow-md"
           />

@@ -42,7 +42,7 @@ const WinningBids = () => {
                   <td className="px-4 py-2">
                     <img
                       className="w-12 h-12 object-cover rounded-full"
-                      src={`http://localhost:3000/${winner.highestBidder.photographDocument}`}
+                      src={winner.highestBidder.photographDocument}
                       alt="profile"
                     />
                   </td>

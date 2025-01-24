@@ -17,7 +17,7 @@ const propertySchema = new mongoose.Schema(
     endDate: { type: Date, required: true },
     endTime: { type: String, required: true, default: "23:59" },
     auctionBrief: { type: String, required: true },
-    propertyImage: { type: String },
+    propertyImage: { type: String, trim: true, required: true },
     status: { type: String, enum: ["Booked", "Vacant"], default: "Vacant" },
     startingBidAmount: { type: String, required: true },
     minimunBidAmount: { type: String, required: true },

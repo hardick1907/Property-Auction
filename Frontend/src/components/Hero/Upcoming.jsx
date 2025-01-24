@@ -109,7 +109,7 @@ const Upcoming = () => {
               <div className="card image-full h-64 w-full text-base-content relative">
                 <figure className="h-full w-full">
                   <img
-                    src={`http://localhost:3000/${property.propertyImage}`}
+                    src={property.propertyImage}
                     alt="Property"
                     className="h-full w-full object-cover"
                   />

@@ -15,8 +15,6 @@ const userSchema = new mongoose.Schema({
   dob: { type: Date, required: true },
   sex: { type: String, required: true },
   maritalStatus: { type: String, required: true },
-  identityDocument: { type: String, required: true },
-  pancardDocument: { type: String, required: true },
   photographDocument: { type: String, required: true },
   acceptConditions: { type: Boolean, required: true },
   role: { type: String, enum: ["customer", "admin"], default: "customer" },

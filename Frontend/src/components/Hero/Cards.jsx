@@ -86,7 +86,7 @@ const Cards = () => {
           <div key={idx} className="card bg-base-100 w-96 shadow-xl">
             <figure>
               <img
-                src={`http://localhost:3000/${property.propertyImage}`}
+                src={property.propertyImage}
                 alt="Apartment"
                 className="rounded-t-lg h-64 object-cover w-full"
               />

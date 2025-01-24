@@ -204,7 +204,7 @@ const AuctionDetails = () => {
                     <div className="avatar">
                       <div className="mask mask-squircle w-12 h-12">
                         <img 
-                          src={`http://localhost:3000/${bid.bidder.photographDocument}`} 
+                          src={bid.bidder.photographDocument} 
                           alt="Avatar" 
                         />
                       </div>
@@ -276,7 +276,7 @@ const AuctionDetails = () => {
       <div className="card w-full shadow-xl">
         <figure className="h-[300px] sm:h-[400px] md:h-[500px] lg:h-[400px] overflow-hidden">
           <img
-            src={`http://localhost:3000/${property.propertyImage}`}
+            src={property.propertyImage}
             alt={property.title}
             className="w-full h-full object-cover"
           />

@@ -45,12 +45,11 @@ export const useAuthStore = create((set,get) => ({
     try {
       const res = await axiosInstance.post("/user/register", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      set({ authUser: res.data });
       toast.success("Registration successful!");
+      set({ authUser: res.data });
       get().connectSocket();
       return true;
     } catch (error) {

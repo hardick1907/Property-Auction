@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import {generateToken} from "../lib/util.js";
 import Property from "../models/property.model.js";
 import User from "../models/user.model.js";
+import cloudinary from "../lib/cloudinary.js";
 
 export const login = async (req, res) => {
     const { email, password,adminID } = req.body;
@@ -70,12 +71,45 @@ export const Addproperty = async (req, res) => {
     auctionBrief,
   } = req.body;
 
-  try {
+  const files = req.files;
 
-    if(!title || !category || !institute || !address || !city || !state || !pincode || !area || !reservedPrice || !propertyPrice || !emdAmount || !startingBidAmount || !minimunBidAmount || !startDate || !endDate || !auctionBrief) {
-      return res.status(400).json({ message: "All fields are required" });
+  if (!files.propertyImage) {
+    return res.status(400).json({
+      success: false,
+      message: 'All required documents must be uploaded',
+    });
+  }
+
+  try {
+    // Validate required fields
+    if (
+      !title ||
+      !category ||
+      !institute ||
+      !address ||
+      !city ||
+      !state ||
+      !pincode ||
+      !area ||
+      !reservedPrice ||
+      !propertyPrice ||
+      !emdAmount ||
+      !startingBidAmount ||
+      !minimunBidAmount ||
+      !startDate ||
+      !endDate ||
+      !auctionBrief
+    ) {
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
+    // Upload property image to Cloudinary
+    const uploadedImage = await cloudinary.uploader.upload(
+      files.propertyImage.tempFilePath,
+      { folder: 'property' }
+    );
+
+    // Create a new property document
     const property = new Property({
       title,
       category,
@@ -93,17 +127,99 @@ export const Addproperty = async (req, res) => {
       startDate,
       endDate,
       auctionBrief,
-      propertyImage: req.files['propertyImage'] ? req.files['propertyImage'][0].path : null
+      propertyImage: uploadedImage.secure_url,
     });
 
     await property.save();
-    res.status(200).json({ message: "Property added successfully" });
 
+    res.status(200).json({ message: 'Property added successfully' });
   } catch (error) {
-    console.error("Error adding property:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    console.error('Error adding property:', error);
+    res.status(500).json({
+      message: 'Internal Server Error',
+      error: error.message,
+    });
   }
-}
+};
+
+export const updateProperty = async (req, res) => {
+  const propertyId = req.params.id;
+  const {
+    title,
+    category,
+    institute,
+    address,
+    city,
+    state,
+    pincode,
+    area,
+    reservedPrice,
+    propertyPrice,
+    emdAmount,
+    startingBidAmount,
+    minimunBidAmount,
+    startDate,
+    endDate,
+    auctionBrief,
+    status
+  } = req.body;
+
+  try {
+    // Find the existing property
+    const property = await Property.findById(propertyId);
+    if (!property) {
+      return res.status(404).json({ message: 'Property not found' });
+    }
+
+    // Prepare update data
+    const updateData = {
+      title,
+      category,
+      institute,
+      address,
+      city,
+      state,
+      pincode,
+      area,
+      reservedPrice,
+      propertyPrice,
+      emdAmount,
+      startingBidAmount,
+      minimunBidAmount,
+      startDate,
+      endDate,
+      auctionBrief,
+      status
+    };
+
+    // Handle image upload if new image is provided
+    if (req.files && req.files.propertyImage) {
+      const uploadedImage = await cloudinary.uploader.upload(
+        req.files.propertyImage.tempFilePath,
+        { folder: 'property' }
+      );
+      updateData.propertyImage = uploadedImage.secure_url;
+    }
+
+    // Update the property
+    const updatedProperty = await Property.findByIdAndUpdate(
+      propertyId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      message: 'Property updated successfully',
+      property: updatedProperty
+    });
+  } catch (error) {
+    console.error('Error updating property:', error);
+    res.status(500).json({
+      message: 'Internal Server Error',
+      error: error.message
+    });
+  }
+};
 
 export const getProperties = async (req, res) => {
   try {
@@ -124,30 +240,6 @@ export const getPropertyById = async (req, res) => {
     res.status(200).json(property);
   } catch (error) {
     console.error("Error fetching property by ID:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-}
-
-export const updateProperty = async (req, res) => {
-  try {
-    const updateData = { ...req.body };
-
-    if (req.files && req.files.propertyImage) {
-      updateData.propertyImage = req.files.propertyImage[0].path;
-    }
-
-    const updatedProperty = await Property.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
-
-    if (!updatedProperty) {
-      return res.status(404).json({ message: "Property not found" });
-    }
-    res.status(200).json(updatedProperty);
-  } catch (error) {
-    console.error("Error updating property:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -174,9 +266,9 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
 export const winnersList = async (req, res) => {
     try {
-        // Find all properties with a highest bidder, sorted by end date
         const winners = await Property.find({ 
             'highestBidder.id': { $exists: true },
             status: 'Booked'
