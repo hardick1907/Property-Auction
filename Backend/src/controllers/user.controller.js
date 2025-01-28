@@ -76,8 +76,6 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
-// ... previous imports remain the same
-
 export const registerUser = async (req, res) => {
   try {
     const {
@@ -197,78 +195,81 @@ export const checkAuth = (req, res) => {
 };
 
 export const placeBid = async (req, res) => {
-    const { id } = req.params;
-    const { bidAmount } = req.body;
-  
-    try {
-      const property = await Property.findById(id);
-  
-      if (!property) {
-        return res.status(404).json({ message: 'Property not found' });
-      }
-  
-      // Convert string values to numbers
-      const currentBidAmount = parseFloat(property.currentBidAmount);
-      const minimumBidAmount = parseFloat(property.minimunBidAmount);
-      const startingBidAmount = parseFloat(property.startingBidAmount);
-  
-      if (isNaN(currentBidAmount) || isNaN(minimumBidAmount)) {
-        return res.status(400).json({ message: 'Invalid current bid or minimum bid amount in database' });
-      }
-  
-      // Check if this is the first bid or a subsequent one
-      if (currentBidAmount === 0) {
-        // First bid, should be greater than the starting bid
-        if (bidAmount < property.startingBidAmount) {
-          return res.status(400).json({ message: `Bid amount must be greater than the starting bid of 
-            ₹ ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(startingBidAmount)}` });
-        }
-      } else {
-        // Subsequent bids, should be at least currentBid + minimum bidding amount
-        const minimumBidAmountForNextBid = currentBidAmount + minimumBidAmount;
-        if (bidAmount < minimumBidAmountForNextBid) {
-          return res.status(400).json({
-            message: `Bid amount must be at more than
-            ₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(minimumBidAmountForNextBid)} (current bid + minimum bidding increment)`
-          });
-        }
-      }
-  
-      // Create bid history entry
-      const bidHistoryEntry = {
-        bidder: {
-          id: req.user._id,
-          email: req.user.email,
-          name: req.user.name,
-          photographDocument: req.user.photographDocument,
-        },
-        bidAmount,
-        timestamp: new Date()
-      };
-  
-      // Update property with bid history
-      property.currentBidAmount = bidAmount;
-      property.highestBidder = {
-        id: req.user._id,
-        name: req.user.name,
-        email: req.user.email
-      };
-      property.biddingHistory.push(bidHistoryEntry);
-      await property.save();
-  
-      // Emit bid event via socket.io
-      io.emit('bidPlaced', bidHistoryEntry);
-      io.emit('currentBid', property.currentBidAmount);
-  
-      return res.status(200).json({
-        message: 'Bid placed successfully',
-        bidHistory: bidHistoryEntry
-      });
-    } catch (error) {
-      console.error('Error in placeBid controller:', error.message);
-      return res.status(500).json({ message: 'Internal server error' });
+  const { id } = req.params;
+  const { bidAmount } = req.body;
+
+  try {
+    const property = await Property.findById(id);
+
+    if (!property) {
+      return res.status(404).json({ message: 'Property not found' });
     }
+
+    // Convert string values to numbers
+    const currentBidAmount = parseFloat(property.currentBidAmount);
+    const minimumBidAmount = parseFloat(property.minimunBidAmount);
+    const startingBidAmount = parseFloat(property.startingBidAmount);
+
+    if (isNaN(currentBidAmount) || isNaN(minimumBidAmount)) {
+      return res.status(400).json({ message: 'Invalid current bid or minimum bid amount in database' });
+    }
+
+    // Check if this is the first bid or a subsequent one
+    if (currentBidAmount === 0) {
+      // First bid, should be greater than or equal to the starting bid
+      if (bidAmount < startingBidAmount) {
+        return res.status(400).json({ 
+          message: `Bid amount must be at least 
+            ₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(startingBidAmount)} (starting bid amount)` 
+        });
+      }
+    } else {
+      // Subsequent bids, should be at least currentBid + minimum bidding amount
+      const minimumBidAmountForNextBid = currentBidAmount + minimumBidAmount;
+      if (bidAmount < minimumBidAmountForNextBid) {
+        return res.status(400).json({
+          message: `Bid amount must be at least 
+            ₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(minimumBidAmountForNextBid)} (current bid + minimum bidding increment)`
+        });
+      }
+    }
+
+    // Create bid history entry
+    const bidHistoryEntry = {
+      bidder: {
+        id: req.user._id,
+        email: req.user.email,
+        name: req.user.name,
+        photographDocument: req.user.photographDocument,
+      },
+      bidAmount,
+      timestamp: new Date(),
+    };
+
+    // Update property with bid history
+    property.currentBidAmount = bidAmount;
+    property.highestBidder = {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+    };
+    property.biddingHistory.push(bidHistoryEntry);
+    await property.save();
+
+    // Emit bid event via socket.io
+    io.emit('bidPlaced', bidHistoryEntry);
+    io.emit('currentBid', property.currentBidAmount);
+
+    return res.status(200).json({
+      message: 'Bid placed successfully',
+      bidHistory: bidHistoryEntry,
+    });
+  } catch (error) {
+    console.error('Error in placeBid controller:', error.message);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 };
+
 
 export const getBidHistory = async (req, res) => {
     const { id } = req.params;
@@ -298,7 +299,10 @@ export const getMyBids = async (req, res) => {
       propertyName: property.title,
       currentBid: property.currentBidAmount,
       propertyImage: property.propertyImage,
-      biddingHistory: property.biddingHistory
+      // Filter biddingHistory to only include the current user's bids
+      biddingHistory: property.biddingHistory.filter(
+        bid => bid.bidder.id.toString() === req.user._id.toString()
+      )
     }));
 
     return res.status(200).json(formattedBids);
@@ -307,6 +311,7 @@ export const getMyBids = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 }
+
 
 export const postReview = async (req, res) => {
     const {email,name,message} = req.body;

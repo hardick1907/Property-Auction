@@ -11,14 +11,11 @@ const navigate = useNavigate();
 const [formData, setFormData] = useState({
   name: "",
   email: "",
-  otp: "",
-  phone: "",
-  address: "",
 });
 
 const handleNext = (data) => {
   setFormData((prev) => ({ ...prev, ...data }));
-  setCurrentStep((prev) => prev + 1); // Move to next step
+  setCurrentStep((prev) => prev + 1);
 };
 
 const handleBack = () => setCurrentStep((prev) => prev - 1);
@@ -26,11 +23,6 @@ const handleBack = () => setCurrentStep((prev) => prev - 1);
 const handleSelect = (type) => {
 setSelected(type);
 navigate(`/${type}`);
-};
-
-const handleSubmit = () => {
-console.log("Final registration data:", formData);
-// Submit data to backend (e.g., call an API to register the user)
 };
 
 return (
@@ -60,7 +52,7 @@ return (
         <ConfirmEmail onNext={handleNext} onBack={handleBack}  email={formData.email} name={formData.name} />
         )}
         {currentStep === 3 && (
-        <CompleteProfile formData={formData} onSubmit={handleSubmit} onBack={handleBack} email={formData.email} name={formData.name} />
+        <CompleteProfile formData={formData} onBack={handleBack} email={formData.email} name={formData.name} />
         )}
     </>
 </div>
